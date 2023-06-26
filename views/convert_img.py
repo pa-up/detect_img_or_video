@@ -253,10 +253,11 @@ def convert_choiced_area(input_img , argu2):
 
 
 class Yolov5OnnxDetector:
-    def __init__(self, onnx_model_path: str):
+    def __init__(self, onnx_model_path: str , resize_length: int = 640):
         # ONNXモデルを読み込む
         self.onnx_model_path = onnx_model_path
         self.cv_dnn_torch = cv2.dnn.readNetFromONNX(onnx_model_path)
+        self.resize_length = resize_length
         self.yolov5_coco_label = np.array([
             ['person'],['bicycle'],['car'],['motorcycle'],['airplane'],['bus'],
             ['train'],['truck'],['boat'],['traffic light'],['fire hydrant'], 
@@ -309,13 +310,14 @@ class Yolov5OnnxDetector:
 
     def detect_by_yolov5s_onnx(self, input_img: np.ndarray):
         # 入力画像の前処理
-        model_input_shape = (3, 640, 640)  # モデルの入力サイズに合わせる
+        model_input_shape = (3, self.resize_length, self.resize_length)  # モデルの入力サイズに合わせる
         resized_square_img, resized_input_img = self.resize_to_square(input_img, model_input_shape[1])
         preprocessing = resized_square_img.copy()
         # モデルに入力し、出力を取得する
         input_cv2_dnn = cv2.dnn.blobFromImage(preprocessing, 1/255.0, (model_input_shape[1], model_input_shape[2]), swapRB=True, crop=False)
         self.cv_dnn_torch.setInput(input_cv2_dnn)
         output_cv_torch = self.cv_dnn_torch.forward()
+        print(f"resized_input_img : {resized_input_img.shape}")
         return output_cv_torch, resized_input_img
 
     def analyse_detection_results(self, output_cv_torch, confidence_threshold: int = 0.98):
@@ -363,6 +365,7 @@ class Yolov5OnnxDetector:
         """
         # 物体検出の実行
         output_cv_torch, input_img = self.detect_by_yolov5s_onnx(input_img)
+        print(f"input_img : {input_img.shape}")
         # 検出結果から、検出領域の座標・ラベル名・確信度のリストを取得
         detect_results = self.analyse_detection_results(output_cv_torch, confidence_threshold)
 
@@ -477,10 +480,11 @@ def st_video_convert(
     if cap.isOpened():
         frames = []
         for count in range(frame_number):
-            process_loop_frame = us.AddOrDeleteStMessage(message = f"{count + 1}枚目/{frame_number} 枚中 のフレームを処理")
+            # process_loop_frame = us.AddOrDeleteStMessage(message = f"{count + 1}枚目/{frame_number} 枚中 のフレームを処理")
             ret, frame = cap.read()
             if ret:
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                _ , frame = resize_to_square(frame , resized_length=640)
                 if ( count % fps_divide == 0 ) :
                     # フレーム画像に画像処理を実行
                     output_frame_name = "media/img/output_frame" + str(count) +".jpg"
@@ -492,7 +496,7 @@ def st_video_convert(
                     # 間引いたフレームは検出が行われたフレームの出力を引き継ぐ
                     output_frame = cv2.imread(output_frame_name)
                     frames.append(output_frame)
-            process_loop_frame.delete_st_item()
+            # process_loop_frame.delete_st_item()
 
         # 画像をpilに変換してリストに格納
         output_video_wait = us.AddOrDeleteStMessage(message = "処理後の動画を書き出し中")
@@ -501,14 +505,15 @@ def st_video_convert(
             if loop % (fps_divide * 2) < fps_divide:
                 frame = Image.fromarray(frame)
                 frames_pil_list.append(frame)
+        del frames
         
         # gifファイルに変換して保存
         pils_to_gifs(frames_pil_list, output_gif_file, fps)
+        del frames_pil_list
         output_video_wait.delete_st_item()
 
         # 動画処理を閉じる
         cap.release()
-        # writer.release()
         cv2.destroyAllWindows()
 
         return fps

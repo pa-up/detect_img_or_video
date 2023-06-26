@@ -3,6 +3,14 @@ import views.useful_st as us
 import views.convert_img as ci
 import forms
 import numpy as np
+import time
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.core.utils import ChromeType
+from selenium.webdriver.chrome import service as fs
 import os
 import moviepy.editor as mp
 from googleapiclient.discovery import build
@@ -44,6 +52,23 @@ class ManipulateGoogleDriveAPI:
         fh.close()
 
 
+def browser_setup():
+    """ブラウザを起動する関数"""
+    #ブラウザの設定
+    options = webdriver.ChromeOptions()
+    options.add_argument('--headless')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+    #ブラウザの起動（webdriver_managerによりドライバーをインストール）
+    CHROMEDRIVER = ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()  # chromiumを使用したいので引数でchromiumを指定しておく
+    service = fs.Service(CHROMEDRIVER)
+    browser = webdriver.Chrome(
+        options=options,
+        service=service
+    )
+    browser.implicitly_wait(3)
+    return browser
+
 def download_file(file_path , download_message: str = "ファイルをダウンロード"):
     with open(file_path, "rb") as file:
         file_data = file.read()
@@ -55,6 +80,25 @@ def gifs_to_mp4(output_gif_file: str, output_video_file: str, fps: int):
     #mp4動画ファイルの保存
     gif_movie.write_videofile(output_video_file, fps, )
     gif_movie.close()
+
+
+def gifs_to_mp4_by_scraping(output_gif_file: str):
+    # ブラウザを起動
+    browser = browser_setup()
+    wait = WebDriverWait(browser, 100)
+    browser.get("https://www.aconvert.com/jp/video/gif-to-mp4/")
+    time.sleep(1)
+    # ファイルのアップロード
+    file_input = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#file')))
+    absolute_output_gif_file = os.path.abspath(output_gif_file)
+    file_input.send_keys(absolute_output_gif_file)
+    # 変換ボタンをクリック
+    convert_button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#submitbtn')))
+    convert_button.click()
+    # mp4動画のリンクを取得
+    output_mp4_url = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#tr1 > td:nth-child(2) > a"))).get_attribute("href")
+    href = f'<a href="{output_mp4_url}" download>加工した動画をダウンロード</a>'
+    st.markdown(href, unsafe_allow_html=True)
 
 
 def result_download_button(page_subtitle: str = "<h1>動画の加工・物体検出</h1><p></p>" , video_folder: str = "media/video/"):
@@ -131,10 +175,9 @@ def main(page_subtitle: str = "<h1>動画の加工・物体検出</h1><p></p>" ,
             frame_func ,[frame_func_parameter] ,fps_divide=fps_divide
         )
         # gif動画をmp4動画に変換
-        gif_to_mp4 = us.AddOrDeleteStMessage(message="動画を書き出し中")
-        ci.gifs_to_mp4(output_gif_file , output_video_file , fps)
+        gif_to_mp4 = us.AddOrDeleteStMessage(message="処理後の動画を書き出し中")
+        gifs_to_mp4_by_scraping(output_gif_file)
         gif_to_mp4.delete_st_item()
-        return output_video_file
 
 
 if __name__ == '__main__':
