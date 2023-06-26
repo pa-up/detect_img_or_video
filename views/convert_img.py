@@ -514,7 +514,7 @@ def st_video_convert(
 
         # 動画処理を閉じる
         cap.release()
-        cv2.destroyAllWindows()
+        # cv2.destroyAllWindows()
 
         return fps
 
