@@ -1,11 +1,11 @@
 # detect_img_or_video
 静止画 or 動画を加工・物体検出するWEBアプリ
 
-<h1>アプリ起動URL</h1>
+<h2>アプリ起動URL</h2>
 https://detect-img-or-video.streamlit.app/
 ※ streamlit cloudにデプロイしております。
 
-<h1>アプリ機能説明</h1>
+<h2>アプリ機能説明</h2>
 静止画像または動画（フレーム毎）に対して、画像加工および物体検出ができます。
 物体検出に関しては、
 <ul>
