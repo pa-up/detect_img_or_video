@@ -7,7 +7,7 @@ import time
 from typing import Callable, List, Optional, TypeVar, Any
 ReturnType = TypeVar('ReturnType')
 import streamlit as st
-import useful_st as us
+import views.useful_st as us
 
 
 def no_change(cv_img, func2):
