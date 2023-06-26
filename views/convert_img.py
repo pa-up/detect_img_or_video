@@ -317,7 +317,6 @@ class Yolov5OnnxDetector:
         input_cv2_dnn = cv2.dnn.blobFromImage(preprocessing, 1/255.0, (model_input_shape[1], model_input_shape[2]), swapRB=True, crop=False)
         self.cv_dnn_torch.setInput(input_cv2_dnn)
         output_cv_torch = self.cv_dnn_torch.forward()
-        print(f"resized_input_img : {resized_input_img.shape}")
         return output_cv_torch, resized_input_img
 
     def analyse_detection_results(self, output_cv_torch, confidence_threshold: int = 0.98):
@@ -365,7 +364,6 @@ class Yolov5OnnxDetector:
         """
         # 物体検出の実行
         output_cv_torch, input_img = self.detect_by_yolov5s_onnx(input_img)
-        print(f"input_img : {input_img.shape}")
         # 検出結果から、検出領域の座標・ラベル名・確信度のリストを取得
         detect_results = self.analyse_detection_results(output_cv_torch, confidence_threshold)
 
@@ -480,7 +478,7 @@ def st_video_convert(
     if cap.isOpened():
         frames = []
         for count in range(frame_number):
-            # process_loop_frame = us.AddOrDeleteStMessage(message = f"{count + 1}枚目/{frame_number} 枚中 のフレームを処理")
+            process_loop_frame = us.AddOrDeleteStMessage(message = f"{count + 1}枚目/{frame_number} 枚中 のフレームを処理")
             ret, frame = cap.read()
             if ret:
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -496,7 +494,7 @@ def st_video_convert(
                     # 間引いたフレームは検出が行われたフレームの出力を引き継ぐ
                     output_frame = cv2.imread(output_frame_name)
                     frames.append(output_frame)
-            # process_loop_frame.delete_st_item()
+            process_loop_frame.delete_st_item()
 
         # 画像をpilに変換してリストに格納
         output_video_wait = us.AddOrDeleteStMessage(message = "処理後の動画を書き出し中")
